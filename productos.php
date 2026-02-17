@@ -1,4 +1,6 @@
 <?php
+error_reporting(E_ALL); // Habilitar todos los reportes de errores
+ini_set('display_errors', 1); // Mostrar errores en pantalla (¡SOLO PARA DEBUGGING!)
 // session_start(); // La sesión se inicia en layout/header.php
 include __DIR__ . '/layout/header.php'; // Incluir el header que ya inicia sesión y conecta DB
 include __DIR__ . '/php/conexion.php';
@@ -20,10 +22,10 @@ if (isset($_SESSION['message']) && !empty($_SESSION['message'])) {
 }
 
 // Obtener la categoría del parámetro GET si existe
-$selected_category = filter_input(INPUT_GET, 'categoria', FILTER_SANITIZE_STRING);
+$selected_category = filter_input(INPUT_GET, 'categoria', FILTER_UNSAFE_RAW);
 $min_price = filter_input(INPUT_GET, 'min_price', FILTER_VALIDATE_FLOAT);
 $max_price = filter_input(INPUT_GET, 'max_price', FILTER_VALIDATE_FLOAT);
-$search_term = filter_input(INPUT_GET, 'search_term', FILTER_SANITIZE_STRING);
+$search_term = filter_input(INPUT_GET, 'search_term', FILTER_UNSAFE_RAW);
 
 // Validación de filtros de precio
 if ($min_price !== false && $max_price !== false && $min_price > $max_price) {
@@ -54,6 +56,8 @@ if (!empty($selected_category)) {
     $params[] = $selected_category;
     $types .= "s";
 }
+// Remove other filter conditions as per user request
+/*
 if ($min_price !== false && $min_price >= 0) {
     $where_clauses[] = "precio >= ?";
     $params[] = $min_price;
@@ -69,6 +73,7 @@ if (!empty($search_term)) {
     $params[] = "%" . $search_term . "%";
     $types .= "s";
 }
+*/
 
 if (!empty($where_clauses)) {
     $count_query .= " WHERE " . implode(" AND ", $where_clauses);
@@ -91,38 +96,51 @@ mysqli_stmt_close($count_stmt);
 
 $total_pages = ceil($total_products / $items_per_page);
 
-// Construir la consulta SQL para obtener los productos de la página actual
-$query_productos = "SELECT * FROM productos";
-if (!empty($where_clauses)) {
-    $query_productos .= " WHERE " . implode(" AND ", $where_clauses);
-}
-$query_productos .= " ORDER BY nombre ASC LIMIT ? OFFSET ?";
-
-// Añadir parámetros de paginación
-$params[] = $items_per_page;
-$params[] = $offset;
-$types .= "ii";
-
-// Preparar y ejecutar la consulta principal
-$stmt = mysqli_prepare($conexion, $query_productos);
-if (!empty($params)) {
-    // Necesitamos reindexar $params para ...$params
-    $ref_params = [];
-    foreach ($params as $key => $value) {
-        $ref_params[$key] = &$params[$key];
-    }
-    mysqli_stmt_bind_param($stmt, $types, ...$ref_params);
-}
-mysqli_stmt_execute($stmt);
-$result_productos = mysqli_stmt_get_result($stmt);
-
+// Inicializar $productos como array vacío.
 $productos = [];
-if ($result_productos) {
-    while ($row = mysqli_fetch_assoc($result_productos)) {
-        $productos[] = $row;
+
+if (!empty($selected_category)) {
+    // CONSTRUCCIÓN Y EJECUCIÓN DE LA CONSULTA PRINCIPAL
+    if (!empty($where_clauses)) {
+        // --- CASO CON FILTROS: Usar sentencias preparadas ---
+        $query_productos = "SELECT * FROM productos WHERE " . implode(" AND ", $where_clauses) . " ORDER BY nombre ASC LIMIT ? OFFSET ?";
+        
+        $main_params = $params;
+        $main_types = $types;
+        $main_params[] = $items_per_page;
+        $main_params[] = $offset;
+        $main_types .= 'ii';
+
+        $stmt = mysqli_prepare($conexion, $query_productos);
+        if ($stmt) {
+            $ref_params = [];
+            foreach ($main_params as $key => $value) {
+                $ref_params[$key] = &$main_params[$key];
+            }
+            mysqli_stmt_bind_param($stmt, $main_types, ...$ref_params);
+            mysqli_stmt_execute($stmt);
+            $result_productos = mysqli_stmt_get_result($stmt);
+            if ($result_productos) {
+                while ($row = mysqli_fetch_assoc($result_productos)) {
+                    $productos[] = $row;
+                }
+            }
+            mysqli_stmt_close($stmt);
+        }
+    } else {
+        // --- CASO SIN FILTROS: Usar una consulta directa y simple ---
+        // Esto se ejecutará si selected_category NO está vacío, pero los otros filtros sí.
+        $query_productos = "SELECT * FROM productos ORDER BY nombre ASC LIMIT {$items_per_page} OFFSET {$offset}";
+        $result_productos = mysqli_query($conexion, $query_productos);
+        if ($result_productos) {
+            while ($row = mysqli_fetch_assoc($result_productos)) {
+                $productos[] = $row;
+            }
+        }
     }
 }
-mysqli_stmt_close($stmt);
+// Si $selected_category está vacío, $productos se mantiene como un array vacío y se mostrará el mensaje "No hay productos disponibles".
+
 
 // Obtener todas las categorías para el sidebar
 $categorias_sidebar_query = mysqli_query($conexion, "SELECT nombre FROM categorias ORDER BY nombre ASC");
@@ -144,44 +162,24 @@ mysqli_close($conexion);
         <div class="col-md-3">
             <h4 class="mb-3">Filtrar por Categoría</h4>
             <div class="list-group mb-4">
-                <a href="productos.php" class="list-group-item list-group-item-action <?php echo empty($selected_category) ? 'active' : ''; ?>">Todas las Categorías</a>
                 <?php foreach ($categorias_sidebar as $cat_name): ?>
                     <a href="productos.php?categoria=<?php echo urlencode($cat_name); ?>" class="list-group-item list-group-item-action <?php echo ($selected_category == $cat_name) ? 'active' : ''; ?>">
                         <?php echo htmlspecialchars($cat_name); ?>
                     </a>
                 <?php endforeach; ?>
             </div>
-
-            <h4 class="mb-3">Filtrar por Precio</h4>
-            <form action="productos.php" method="GET" class="mb-4">
-                <input type="hidden" name="categoria" value="<?php echo htmlspecialchars($selected_category); ?>">
-                <div class="form-group">
-                    <label for="min_price">Precio Mínimo:</label>
-                    <input type="number" class="form-control" id="min_price" name="min_price" step="0.01" value="<?php echo htmlspecialchars($_GET['min_price'] ?? ''); ?>">
-                </div>
-                <div class="form-group">
-                    <label for="max_price">Precio Máximo:</label>
-                    <input type="number" class="form-control" id="max_price" name="max_price" step="0.01" value="<?php echo htmlspecialchars($_GET['max_price'] ?? ''); ?>">
-                </div>
-                <button type="submit" class="btn btn-primary btn-block">Aplicar Filtros</button>
-            </form>
-
-            <h4 class="mb-3">Buscar por Nombre</h4>
-            <form action="productos.php" method="GET" class="mb-4">
-                <input type="hidden" name="categoria" value="<?php echo htmlspecialchars($selected_category); ?>">
-                <div class="form-group">
-                    <label for="search_term">Buscar:</label>
-                    <input type="text" class="form-control" id="search_term" name="search_term" value="<?php echo htmlspecialchars($_GET['search_term'] ?? ''); ?>">
-                </div>
-                <button type="submit" class="btn btn-primary btn-block">Buscar</button>
-            </form>
-
         </div>
 
         <!-- Listado de Productos -->
         <div class="col-md-9">
             <h1 class="mb-4">
-                <?php echo !empty($selected_category) ? htmlspecialchars($selected_category) : 'Todos los Productos'; ?>
+                <?php
+                if (!empty($selected_category)) {
+                    echo htmlspecialchars($selected_category);
+                } else {
+                    echo 'Seleccione una categoría';
+                }
+                ?>
             </h1>
             <div class="row">
                 <?php if (!empty($productos)): ?>
@@ -203,24 +201,20 @@ mysqli_close($conexion);
                         $flag_filename = $flag_map[$pais_producto_normalized] ?? 'mexico.png'; // Por defecto, bandera de México si no hay coincidencia
                         $flag_path = "/assets/images/paises/" . $flag_filename;
                         ?>
-                        <div class="col-lg-4 col-md-6 mb-4">
-                            <div class="card h-100">
-                                <img class="card-img-top" src="<?php echo htmlspecialchars($producto['imagen']); ?>" alt="<?php echo htmlspecialchars($producto['nombre']); ?>">
-                                <div class="card-body">
-                                    <h4 class="card-title">
-                                        <a href="/vinospage/detallesproducto.php?id=<?php echo htmlspecialchars($producto['id']); ?>"><?php echo htmlspecialchars($producto['nombre']); ?></a>
-                                    </h4>
-                                    <h5>
-                                        $<?php echo htmlspecialchars(number_format($precio_final, 2)); ?>
-                                        <?php if ($descuento_porcentaje > 0): ?>
-                                            <small class="text-muted"><del>$<?php echo htmlspecialchars(number_format($precio_original, 2)); ?></del></small>
-                                        <?php endif; ?>
-                                    </h5>
-                                    <p class="card-text"><?php echo htmlspecialchars(substr($producto['descripcion'], 0, 100)) . (strlen($producto['descripcion']) > 100 ? '...' : ''); ?></p>
-                                    <img class="bandera" src="<?php echo $flag_path; ?>" alt="Bandera de <?php echo htmlspecialchars($producto['pais'] ?? 'Desconocido'); ?>" width="30">
-                                </div>
-                                <div class="card-footer">
-                                    <button class="btn btn-primary btn-agregar" data-product-id="<?php echo htmlspecialchars($producto['id']); ?>">Añadir al Carrito</button>
+                        <div class="product-card">
+                            <div class="productoini">
+                                <img class="bandera" src="<?php echo $flag_path; ?>" alt="Bandera de <?php echo htmlspecialchars($producto['pais'] ?? 'Desconocido'); ?>">
+                                <a href="/vinospage/detallesproducto.php?id=<?php echo htmlspecialchars($producto['id']); ?>"><img class="vino-bottle" src="<?php echo htmlspecialchars($producto['imagen']); ?>" alt="<?php echo htmlspecialchars($producto['nombre']); ?>"></a>
+                                <div class="informacion">
+                                    <span class="precio">$<?php echo htmlspecialchars(number_format($precio_final, 2)); ?></span>
+                                    <?php if ($descuento_porcentaje > 0): ?>
+                                        <span class="none"><del>$<?php echo htmlspecialchars(number_format($precio_original, 2)); ?></del></span>
+                                    <?php endif; ?>
+                                    <span class="costo-envio">Envio Gratis</span>
+                                    <h2 class="product-title"><?php echo htmlspecialchars($producto['nombre']); ?></h2>
+                                    <div>
+                                        <button class="btn-agregar" type="button" data-product-id="<?php echo htmlspecialchars($producto['id']); ?>">Agregar</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>

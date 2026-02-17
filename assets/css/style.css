@@ -9,10 +9,16 @@
     --border: 5.5rem solid rgba(57, 57, 57, 0.655);
 }
 
-html{
+/* Universal box-sizing for easier layout calculations */
+html {
+    box-sizing: border-box;
     overflow-x: hidden;
     scroll-padding-top: 9rem;
     scroll-behavior: smooth;
+}
+
+*, *::before, *::after {
+    box-sizing: inherit;
 }
 
 
@@ -368,8 +374,11 @@ body{
     padding: 0;
     margin: 0;
     background: #fff;
-    max-width: 270px;
-    flex-flow: column;
+    width: 100%;
+    height: 100%; /* Make it fill the parent's height */
+    display: flex; /* Make it a flex container */
+    flex-direction: column; /* Stack children vertically */
+    justify-content: space-between; /* Distribute space among children */
     border-radius: 8px;
     box-shadow: 0 0 0.2em rgba(0, 0, 0, 0.2);
     cursor: pointer;
@@ -383,7 +392,7 @@ body{
 
 .vino-bottle{
     width: 100%;
-    height: 300px;
+    height: 450px;
     object-fit: cover;
 }
 
@@ -458,10 +467,12 @@ body{
 }
   
 .product-container {
-    padding: 5vw 10vw;
+    /* Ajustar padding para dar más espacio a las tarjetas */
+    padding: 5vw 5vw 100px 5vw; /* Reducir el padding horizontal */
     display: flex;
     overflow-x: auto;
     scroll-behavior: smooth;
+    align-items: flex-start; /* Asegurar que las tarjetas estén alineadas en la parte superior */
 }
   
 .product-container::-webkit-scrollbar {
@@ -470,9 +481,20 @@ body{
 
 .product-card {
     flex: 0 0 auto;
-    width: 260px;
-    height: 430px;
-    margin-right: 38px;
+    width: 21.8vw;
+    height: 455px;
+    margin-right: 0.7vw;
+    box-sizing: border-box; /* Incluir padding y borde en el ancho/alto */
+    display: flex; /* Usar flexbox para el contenido de la tarjeta */
+    flex-direction: column; /* Apilar contenido verticalmente */
+    justify-content: space-between; /* Espaciar contenido de la tarjeta */
+}
+
+/* Asegurar que las imágenes de la tarjeta no sobresalgan */
+.product-card img.vino-bottle {
+    max-width: 100%;
+    height: 245px; /* Reducir altura en un 30% */
+    object-fit: cover; /* Asegurar que la imagen cubra el área */
 }
 
 .pre-btn,
@@ -487,7 +509,7 @@ body{
     justify-content: center;
     align-items: center;
     cursor: pointer;
-    background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, #fff 100%);
+    background: none;
     z-index: 8;
 }
 
@@ -901,10 +923,6 @@ body{
         display: block;
     }
 
-    .nav-menu_visible{
-        left: 0;
-    }
-
     .nav-toggle:focus:not(:focus-visible){
         outline: none;
     }
@@ -955,6 +973,35 @@ body{
         margin: 10px;
     }
 
+/* Mobile adjustments for product cards */
+    .product-card {
+        width: 43vw; /* Para que quepan 2 tarjetas */
+        margin-right: 2vw;
+        height: 380px; /* Reducir la altura para hacerlas más compactas */
+    }
+    .product-card img.vino-bottle {
+        height: 180px; /* Mantener la altura consistente */
+    }
+
+    /* Font size reductions for mobile */
+    .informacion {
+        padding: 0.5em; /* Reducir padding */
+    }
+    .precio {
+        font-size: 1em; /* Reducir font size */
+    }
+    .costo-envio {
+        color: var(--vino);
+        font-size: 0.9em; /* Reducir font size */
+    }
+    .product-title {
+        font-weight: 400;
+        font-size: 0.9em; /* Reducir font size */
+    }
+    .productoini button {
+        padding: 2% 20%; /* Reducir padding del botón */
+        font-size: 13px; /* Reducir font size del botón */
+    }
 }
 
 @media screen and (max-width: 1200px){

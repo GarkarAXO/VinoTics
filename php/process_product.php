@@ -16,15 +16,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $imagen = $existing_image; // Por defecto, se mantiene la imagen existente
 
     // Manejo de la subida de archivos
-    error_log("FILES array: " . print_r($_FILES, true)); // Debug
 
     $target_image_path = $existing_image; // Por defecto, se mantiene la imagen existente
 
     // Procesa la subida del archivo si se intenta
     if (isset($_FILES['imagen_file']) && $_FILES['imagen_file']['name'] != '') {
-        error_log("Image file error code: " . $_FILES['imagen_file']['error']); // Debug
         if ($_FILES['imagen_file']['error'] === UPLOAD_ERR_OK) {
-            error_log("File upload detected and OK. Processing file..."); // Debug
             $file_tmp_name = $_FILES['imagen_file']['tmp_name'];
             $file_name = $_FILES['imagen_file']['name'];
             $file_size = $_FILES['imagen_file']['size'];
@@ -36,16 +33,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             // Asegurarse de que el directorio de subida existe y tiene permisos de escritura
             if (!is_dir($full_upload_dir)) {
-                error_log("Upload directory does not exist: " . $full_upload_dir); // Debug
+                // error_log("Upload directory does not exist: " . $full_upload_dir); // Debug
                 if (!mkdir($full_upload_dir, 0775, true)) { // Crear recursivamente con permisos 0775
                     $_SESSION['message'] = "Error: No se pudo crear el directorio de subida de imágenes. Verifique permisos.";
                     $_SESSION['message_type'] = "danger";
                     header("Location: ../dashboard.php");
                     exit();
                 }
-                error_log("Upload directory created: " . $full_upload_dir); // Debug
+                // error_log("Upload directory created: " . $full_upload_dir); // Debug
             } else {
-                error_log("Upload directory exists: " . $full_upload_dir); // Debug
+                // error_log("Upload directory exists: " . $full_upload_dir); // Debug
             }
 
             if (in_array($file_ext, $allowed_ext)) {
@@ -55,9 +52,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                     if (move_uploaded_file($file_tmp_name, $destination)) {
                         $target_image_path = $web_root_upload_path . $new_file_name; // Guardar la ruta relativa al web root para la DB
-                        error_log("File moved successfully. Image path: " . $target_image_path); // Debug
+                        // error_log("File moved successfully. Image path: " . $target_image_path); // Debug
                     } else {
-                        error_log("Failed to move uploaded file from " . $file_tmp_name . " to " . $destination); // Debug
+                        // error_log("Failed to move uploaded file from " . $file_tmp_name . " to " . $destination); // Debug
                         $_SESSION['message'] = "Error al mover el archivo subido al servidor.";
                         $_SESSION['message_type'] = "danger";
                         header("Location: ../dashboard.php");
@@ -105,8 +102,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if ($descuento === false || $descuento < 0 || $descuento > 100) {
         $descuento = 0.00; // Valor por defecto si es inválido
     }
-    error_log("Final \$imagen value before DB operations: " . $imagen); // Debug
-    error_log("Category value before DB operations: " . $categoria); // Debug
+    // error_log("Final \$imagen value before DB operations: " . $imagen); // Debug
+    // error_log("Category value before DB operations: " . $categoria); // Debug
     $id_producto = filter_input(INPUT_POST, 'id_producto', FILTER_VALIDATE_INT); // Para edición
 
     // Validación básica de los campos requeridos
@@ -120,11 +117,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     // Si se recibe un id_producto, es una actualización
     if ($id_producto) {
         $stmt = mysqli_prepare($conexion, "UPDATE productos SET nombre = ?, descripcion = ?, precio = ?, imagen = ?, categoria = ?, pais = ?, marca = ?, vol_alcohol = ?, cosecha = ?, maridaje = ?, descuento = ? WHERE id = ?");
-        mysqli_stmt_bind_param($stmt, "ssds**s**sssssdi", $nombre, $descripcion, $precio, $imagen, $categoria, $pais, $marca, $vol_alcohol, $cosecha, $maridaje, $descuento, $id_producto);
+        mysqli_stmt_bind_param($stmt, "ssdssssssddi", $nombre, $descripcion, $precio, $imagen, $categoria, $pais, $marca, $vol_alcohol, $cosecha, $maridaje, $descuento, $id_producto);
         $action_type = "actualizado";
     } else { // Si no hay id_producto, es una inserción
         $stmt = mysqli_prepare($conexion, "INSERT INTO productos (nombre, descripcion, precio, imagen, categoria, pais, marca, vol_alcohol, cosecha, maridaje, descuento) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        mysqli_stmt_bind_param($stmt, "ssds**s**sssssd", $nombre, $descripcion, $precio, $imagen, $categoria, $pais, $marca, $vol_alcohol, $cosecha, $maridaje, $descuento);
+        mysqli_stmt_bind_param($stmt, "ssdsssssssd", $nombre, $descripcion, $precio, $imagen, $categoria, $pais, $marca, $vol_alcohol, $cosecha, $maridaje, $descuento);
         $action_type = "añadido";
     }
 

@@ -45,4 +45,5 @@ include("php/proteccion.php");
     </div>
 </main>
 
+<script defer src="/assets/js/script.js"></script>
 <?php require('./layout/footer.php') ?>

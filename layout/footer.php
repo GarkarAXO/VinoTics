@@ -41,7 +41,6 @@
 <!--Cierre del footer-->
 
 <!--script para java-->
-    <script defer src="/assets/js/script.js"></script>
     <script defer src="/assets/js/main.js"></script>
     <script src="https://kit.fontawesome.com/75ec28dce5.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>

@@ -199,8 +199,7 @@
                                 echo '<td>' . htmlspecialchars($row['nombre']) . '</td>';
                                 echo '<td>' . htmlspecialchars($row['descripcion']) . '</td>';
                                 echo '<td>$' . htmlspecialchars(number_format($row['precio'], 2)) . '</td>';
-                                echo '<td><img src="' . htmlspecialchars($row['imagen']) . '" alt="Imagen de ' . htmlspecialchars($row['nombre']) . '" width="50">';
-                                echo '<br><small>Path: ' . htmlspecialchars($row['imagen']) . '</small></td>'; // Temporary debug path
+                                echo '<td><img src="' . htmlspecialchars($row['imagen']) . '" alt="Imagen de ' . htmlspecialchars($row['nombre']) . '" width="50"></td>';
                                 echo '<td>' . htmlspecialchars($row['categoria']) . '</td>';
                                 echo '<td>';
                                 echo '<a href="?edit=' . htmlspecialchars($row['id']) . '">Editar</a> | ';
